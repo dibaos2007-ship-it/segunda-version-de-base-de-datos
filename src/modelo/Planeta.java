@@ -103,4 +103,7 @@ public class Planeta {
     public void setAnosLuzDeLaTierra(double anosLuzDeLaTierra) {
         this.anosLuzDeLaTierra = anosLuzDeLaTierra;
     }
+
+    public void setAniosLuzDeLaTierra(double añosLuzDeLaTierra) {
+    }
 }
