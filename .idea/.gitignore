@@ -1,10 +1,31 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Ignored default folder with query files
-/queries/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
-# Editor-based HTTP Client requests
-/httpRequests/
+# --------------------------
+# LO QUE QUEREMOS IGNORAR (NO SUBIR)
+# --------------------------
+# Archivos de configuración de IntelliJ (no sirven para el proyecto)
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Archivos compilados y carpetas de salida
+*.class
+out/
+build/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# --------------------------
+# LO QUE QUEREMOS SUBIR (LO IMPORTANTE)
+# --------------------------
+# Ignora todo lo demás, PERO NO IGNORES ESTO:
+*
+# 👉 Permite subir la carpeta lib completa
+!lib/
+# 👉 Permite subir el archivo del controlador que necesitas para conectar a la base de datos
+!lib/postgresql-42.6.0 (2).jar
+# 👉 Permite subir la carpeta con tu código
+!src/
+# 👉 Permite subir el archivo de descripción
+!README.md
