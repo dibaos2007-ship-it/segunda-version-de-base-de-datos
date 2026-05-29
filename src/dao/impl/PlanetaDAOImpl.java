@@ -5,147 +5,214 @@ import modelo.Planeta;
 import conexion.ConexionBD;
 
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PlanetaDAOImpl implements PlanetaDAO {
 
+    // 1. CONSULTAR UN PLANETA POR NOMBRE (ya que es la clave primaria)
+    @Override
+    public Planeta consultarPorNombre(String nombrePlaneta) {
+        // Usamos el nombre exacto del campo en la BD
+        String sql = "SELECT * FROM planetas WHERE \"NOMBRE\" = ?";
+        Planeta planeta = null;
 
+        try (Connection conexion = ConexionBD.obtenerConexion();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            pstmt.setString(1, nombrePlaneta);
+            ResultSet resultado = pstmt.executeQuery();
+
+            if (resultado.next()) {
+                planeta = new Planeta();
+                // Asignamos cada valor con el nombre correcto de la columna
+                planeta.setNombre(resultado.getString("NOMBRE"));
+                planeta.setId(resultado.getInt("id"));
+
+                // Convertimos DATE de la BD a LocalDate de Java
+                Date fechaDesc = resultado.getDate("FECHA DE DESCUBIERTO");
+                if (fechaDesc != null) {
+                    planeta.setFechaDescubierto(fechaDesc.toLocalDate());
+                }
+
+                planeta.setTipoPlaneta(resultado.getString("TIPO PLANETA"));
+                planeta.setNumeroSatelites(resultado.getInt("numero de satelites naturales"));
+                planeta.setSistemaDeAnillos(resultado.getBoolean("Sistema de anillos"));
+                planeta.setGalaxia(resultado.getString("galaxia"));
+                planeta.setPodriaContenerVida(resultado.getBoolean("Podria contener vida"));
+                planeta.setTemperaturaMedia(resultado.getInt("Temperatura media"));
+                planeta.setPeriodoOrbital(resultado.getDouble("periodo orbital"));
+                planeta.setAniosLuzTierra(resultado.getDouble("años luz de la tierra"));
+
+                // Convertimos TIMESTAMP a LocalDateTime
+                Timestamp registro = resultado.getTimestamp("REGISTRO");
+                if (registro != null) {
+                    planeta.setRegistro(registro.toLocalDateTime());
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error al consultar planeta: " + e.getMessage());
+        }
+        return planeta;
+    }
+
+
+    // 2. CONSULTAR TODOS LOS PLANETAS
     @Override
     public List<Planeta> consultarTodos() {
-        String sql = "SELECT * FROM planetas";
-        List<Planeta> lista = new ArrayList<>();
+        String sql = "SELECT * FROM planetas ORDER BY \"NOMBRE\" ASC";
+        List<Planeta> listaPlanetas = new ArrayList<>();
 
-        try (Connection con = ConexionBD.obtenerConexion();
-             PreparedStatement pst = con.prepareStatement(sql);
-             ResultSet rs = pst.executeQuery()) {
+        try (Connection conexion = ConexionBD.obtenerConexion();
+             Statement stmt = conexion.createStatement();
+             ResultSet resultado = stmt.executeQuery(sql)) {
 
-            while (rs.next()) {
-                Planeta p = new Planeta();
-                cargarDatosPlaneta(rs, p);
-                lista.add(p);
+            while (resultado.next()) {
+                Planeta planeta = new Planeta();
+                planeta.setNombre(resultado.getString("NOMBRE"));
+                planeta.setId(resultado.getInt("id"));
+
+                Date fechaDesc = resultado.getDate("FECHA DE DESCUBIERTO");
+                if (fechaDesc != null) {
+                    planeta.setFechaDescubierto(fechaDesc.toLocalDate());
+                }
+
+                planeta.setTipoPlaneta(resultado.getString("TIPO PLANETA"));
+                planeta.setNumeroSatelites(resultado.getInt("numero de satelites naturales"));
+                planeta.setSistemaDeAnillos(resultado.getBoolean("Sistema de anillos"));
+                planeta.setGalaxia(resultado.getString("galaxia"));
+                planeta.setPodriaContenerVida(resultado.getBoolean("Podria contener vida"));
+                planeta.setTemperaturaMedia(resultado.getInt("Temperatura media"));
+                planeta.setPeriodoOrbital(resultado.getDouble("periodo orbital"));
+                planeta.setAniosLuzTierra(resultado.getDouble("años luz de la tierra"));
+
+                Timestamp registro = resultado.getTimestamp("REGISTRO");
+                if (registro != null) {
+                    planeta.setRegistro(registro.toLocalDateTime());
+                }
+
+                listaPlanetas.add(planeta);
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("Error al consultar todos: " + e.getMessage());
+            System.out.println(" Error al listar planetas: " + e.getMessage());
         }
-        return lista;
+        return listaPlanetas;
     }
 
 
+    // 3. AGREGAR UN NUEVO PLANETA
     @Override
-    public Planeta consultarPorId(int id) {
-        String sql = "SELECT * FROM planetas WHERE id = ?";
-        Planeta p = null;
-
-        try (Connection con = ConexionBD.obtenerConexion();
-             PreparedStatement pst = con.prepareStatement(sql)) {
-
-            pst.setInt(1, id);
-            ResultSet rs = pst.executeQuery();
-
-            if (rs.next()) {
-                p = new Planeta();
-                cargarDatosPlaneta(rs, p);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return p;
-    }
-
-
-    @Override
-    public boolean agregar(Planeta planeta) {
-        String sql = "INSERT INTO planetas (\"NOMBRE\", id, \"FECHA DE DESCUBIERTO\", \"TIPO PLANETA\", \"numero de satelites naturales\", \"Sistema de anillos\", galaxia, \"Podria contener vida\", \"Temperatura media\", \"periodo orbital\", \"años luz de la tierra\") " +
+    public boolean agregarPlaneta(Planeta nuevoPlaneta) {
+        // El campo REGISTRO se genera automáticamente en la BD
+        String sql = "INSERT INTO planetas (" +
+                "\"NOMBRE\", id, \"FECHA DE DESCUBIERTO\", \"TIPO PLANETA\", " +
+                "\"numero de satelites naturales\", \"Sistema de anillos\", galaxia, " +
+                "\"Podria contener vida\", \"Temperatura media\", \"periodo orbital\", " +
+                "\"años luz de la tierra\") " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection con = ConexionBD.obtenerConexion();
-             PreparedStatement pst = con.prepareStatement(sql)) {
+        try (Connection conexion = ConexionBD.obtenerConexion();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
-            pst.setString(1, planeta.getNombre());
-            pst.setInt(2, planeta.getId());
-            pst.setString(3, planeta.getFechaDeDescubierto());
-            pst.setString(4, planeta.getTipoPlaneta());
-            pst.setInt(5, planeta.getNumeroDeSatelitesNaturales());
-            pst.setBoolean(6, planeta.isSistemaDeAnillos());
-            pst.setString(7, planeta.getGalaxia());
-            pst.setBoolean(8, planeta.isPodriaContenerVida());
-            pst.setInt(9, planeta.getTemperaturaMedia());
-            pst.setDouble(10, planeta.getPeriodoOrbital());
-            pst.setDouble(11, planeta.getAnosLuzDeLaTierra());
+            // Asignamos cada valor en el orden correcto
+            pstmt.setString(1, nuevoPlaneta.getNombre());
+            pstmt.setInt(2, nuevoPlaneta.getId());
+            pstmt.setDate(3, Date.valueOf(nuevoPlaneta.getFechaDescubierto()));
+            pstmt.setString(4, nuevoPlaneta.getTipoPlaneta());
+            pstmt.setInt(5, nuevoPlaneta.getNumeroSatelites());
+            pstmt.setBoolean(6, nuevoPlaneta.isSistemaDeAnillos());
+            pstmt.setString(7, nuevoPlaneta.getGalaxia());
+            pstmt.setBoolean(8, nuevoPlaneta.isPodriaContenerVida());
+            pstmt.setInt(9, nuevoPlaneta.getTemperaturaMedia());
+            pstmt.setDouble(10, nuevoPlaneta.getPeriodoOrbital());
+            pstmt.setDouble(11, nuevoPlaneta.getAniosLuzTierra());
 
-            return pst.executeUpdate() > 0;
+
+            int filasAfectadas = pstmt.executeUpdate();
+            return filasAfectadas > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("❌ Error al agregar: " + e.getMessage());
+            System.out.println(" Error al agregar planeta: " + e.getMessage());
             return false;
         }
     }
 
 
+    // 4. FILTRAR PLANETAS POR CRITERIO
     @Override
-    public List<Planeta> filtrarPorGalaxia(String nombreGalaxia) {
-        String sql = "SELECT * FROM planetas WHERE galaxia ILIKE ?";
-        List<Planeta> lista = new ArrayList<>();
+    public List<Planeta> filtrarPorCriterio(String criterio, String valor) {
+        // Mapeamos los criterios a los nombres reales de las columnas
+        String columna = switch (criterio.toLowerCase()) {
+            case "tipo" -> "\"TIPO PLANETA\"";
+            case "galaxia" -> "galaxia";
+            case "vida" -> "\"Podria contener vida\"";
+            case "anillos" -> "\"Sistema de anillos\"";
+            case "satelites" -> "\"numero de satelites naturales\"";
+            case "temperatura" -> "\"Temperatura media\"";
+            case "distancia" -> "\"años luz de la tierra\"";
+            default -> "";
+        };
 
-        try (Connection con = ConexionBD.obtenerConexion();
-             PreparedStatement pst = con.prepareStatement(sql)) {
+        List<Planeta> resultado = new ArrayList<>();
 
-            pst.setString(1, "%" + nombreGalaxia + "%");
-            ResultSet rs = pst.executeQuery();
+
+        if (columna.isEmpty()) {
+            System.out.println(" Criterios: tipo, galaxia, vida, anillos, satelites, temperatura, distancia");
+            return resultado;
+        }
+
+        // Consulta SQL con el nombre de columna correcto
+        String sql = "SELECT * FROM planetas WHERE " + columna + " = ? ORDER BY \"NOMBRE\"";
+
+        try (Connection conexion = ConexionBD.obtenerConexion();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            // Asignamos el valor según el tipo de dato
+            switch (criterio.toLowerCase()) {
+                case "vida", "anillos" ->
+                        pstmt.setBoolean(1, Boolean.parseBoolean(valor));
+                case "satelites", "temperatura", "distancia" ->
+                        pstmt.setDouble(1, Double.parseDouble(valor));
+                default ->
+                        pstmt.setString(1, valor);
+            }
+
+            ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
                 Planeta p = new Planeta();
-                cargarDatosPlaneta(rs, p);
-                lista.add(p);
+                p.setNombre(rs.getString("NOMBRE"));
+                p.setId(rs.getInt("id"));
+
+                Date fechaDesc = rs.getDate("FECHA DE DESCUBIERTO");
+                if (fechaDesc != null) {
+                    p.setFechaDescubierto(fechaDesc.toLocalDate());
+                }
+
+                p.setTipoPlaneta(rs.getString("Tipo de planetaa"));
+                p.setNumeroSatelites(rs.getInt("numero de satelites naturales"));
+                p.setSistemaDeAnillos(rs.getBoolean("Sistema de anillos"));
+                p.setGalaxia(rs.getString("galaxia"));
+                p.setPodriaContenerVida(rs.getBoolean("Podria contener vida"));
+                p.setTemperaturaMedia(rs.getInt("Temperatura media"));
+                p.setPeriodoOrbital(rs.getDouble("periodo orbital"));
+                p.setAniosLuzTierra(rs.getDouble("años luz de la tierra"));
+
+                Timestamp registro = rs.getTimestamp("REGISTRO");
+                if (registro != null) {
+                    p.setRegistro(registro.toLocalDateTime());
+                }
+
+                resultado.add(p);
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException | NumberFormatException e) {
+            System.out.println(" Error al filtrar " + e.getMessage());
         }
-        return lista;
-    }
-
-
-    @Override
-    public List<Planeta> filtrarPorPosibleVida(boolean tienePosibilidad) {
-        String sql = "SELECT * FROM planetas WHERE \"Podria contener vida\" = ?";
-        List<Planeta> lista = new ArrayList<>();
-
-        try (Connection con = ConexionBD.obtenerConexion();
-             PreparedStatement pst = con.prepareStatement(sql)) {
-
-            pst.setBoolean(1, tienePosibilidad);
-            ResultSet rs = pst.executeQuery();
-
-            while (rs.next()) {
-                Planeta p = new Planeta();
-                cargarDatosPlaneta(rs, p);
-                lista.add(p);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return lista;
-    }
-
-
-    private void cargarDatosPlaneta(ResultSet rs, Planeta p) throws SQLException {
-        p.setNombre(rs.getString("\"NOMBRE\""));
-        p.setId(rs.getInt("id"));
-        p.setFechaDeDescubierto(rs.getString("\"FECHA DE DESCUBIERTO\""));
-        p.setTipoPlaneta(rs.getString("\"TIPO PLANETA\""));
-        p.setNumeroDeSatelitesNaturales(rs.getInt("\"numero de satelites naturales\""));
-        p.setSistemaDeAnillos(rs.getBoolean("\"Sistema de anillos\""));
-        p.setGalaxia(rs.getString("galaxia"));
-        p.setPodriaContenerVida(rs.getBoolean("\"Podria contener vida\""));
-        p.setTemperaturaMedia(rs.getInt("\"Temperatura media\""));
-        p.setPeriodoOrbital(rs.getDouble("\"periodo orbital\""));
-        p.setAnosLuzDeLaTierra(rs.getDouble("\"años luz de la tierra\""));
+        return resultado;
     }
 }

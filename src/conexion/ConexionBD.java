@@ -6,9 +6,26 @@ import java.sql.SQLException;
 
 public class ConexionBD {
 
-    private static final String URL = "jdbc:postgresql://ep-winter-paper-aqrrijk8y-pooler.us-east-1.aws.neon.tech/neondb?user=neondb_owner&password=npq-yqEp8djS6UML&sslmode=require";
-
     public static Connection obtenerConexion() throws SQLException {
-        return DriverManager.getConnection(URL);
+        try {
+            Class.forName("org.postgresql.Driver");
+            return DriverManager.getConnection(
+                    ConfigBD.URL,
+                    ConfigBD.USUARIO,
+                    ConfigBD.CONTRASEÑA
+            );
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("Controlador no encontrado: " + e.getMessage());
+        }
+    }
+
+    public static void cerrarConexion(Connection conexion) {
+        if (conexion != null) {
+            try {
+                conexion.close();
+            } catch (SQLException e) {
+                System.out.println("Error al cerrar conexión: " + e.getMessage());
+            }
+        }
     }
 }
